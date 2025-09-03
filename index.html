@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Siu Gallery</title>
+  <style>
+    body { margin:0; font-family:sans-serif; background:#0f1115; color:#e8e9ed; }
+    header { padding:16px; text-align:center; background:#151823; }
+    h1 { margin:0; font-size:28px; background:linear-gradient(90deg,#7c9cff,#9c7cff); -webkit-background-clip:text; color:transparent; }
+    .wrap { max-width:1200px; margin:0 auto; padding:16px; }
+    .folder { margin-bottom:40px; }
+    .folder h2 { font-size:22px; border-bottom:2px solid #2a3147; padding-bottom:6px; margin-bottom:12px; }
+    .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:12px; }
+    .card { border-radius:12px; overflow:hidden; background:#0c0f16; }
+    .card img { width:100%; height:180px; object-fit:cover; display:block; cursor:pointer; }
+    /* Lightbox */
+    .lightbox { position:fixed; inset:0; background:#000d; display:none; align-items:center; justify-content:center; z-index:100; }
+    .lightbox.open { display:flex; }
+    .lightbox img { max-width:92vw; max-height:88vh; border-radius:10px; box-shadow:0 10px 50px #000a; }
+    .lb-controls { position:fixed; bottom:20px; left:0; right:0; display:flex; justify-content:center; gap:10px; }
+    .lb-btn { border:0; border-radius:8px; padding:8px 14px; background:#111827cc; color:#f0f3ff; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Siu Gallery</h1>
+  </header>
+  <div class="wrap" id="galleryRoot"></div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox">
+    <img id="lightboxImg" alt="Siu image" />
+    <div class="lb-controls">
+      <button class="lb-btn" id="prevBtn">◀</button>
+      <button class="lb-btn" id="closeBtn">✕</button>
+      <button class="lb-btn" id="nextBtn">▶</button>
+    </div>
+  </div>
+
+  <script>
+  (async function(){
+    const response = await fetch('gallery.json');
+    const data = await response.json();
+    const root = document.getElementById('galleryRoot');
+
+    let items = []; // flat array for lightbox
+    let currentIndex = -1;
+
+    for(const folder in data){
+      const section = document.createElement('div');
+      section.className = 'folder';
+      const h2 = document.createElement('h2');
+      h2.textContent = folder;
+      section.appendChild(h2);
+      const grid = document.createElement('div');
+      grid.className = 'gallery';
+
+      data[folder].forEach((src)=>{
+        const card = document.createElement('div');
+        card.className = 'card';
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = src.split('/').pop();
+        img.addEventListener('click',()=> openLightbox(src));
+        card.appendChild(img);
+        grid.appendChild(card);
+        items.push(src);
+      });
+
+      section.appendChild(grid);
+      root.appendChild(section);
+    }
+
+    // Lightbox logic
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightboxImg');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const closeBtn = document.getElementById('closeBtn');
+
+    function openLightbox(src){
+      currentIndex = items.indexOf(src);
+      lb.classList.add('open');
+      updateLightbox();
+    }
+    function closeLightbox(){ lb.classList.remove('open'); currentIndex=-1; }
+    function updateLightbox(){ if(currentIndex>=0) lbImg.src = items[currentIndex]; }
+    function prev(){ currentIndex=(currentIndex-1+items.length)%items.length; updateLightbox(); }
+    function next(){ currentIndex=(currentIndex+1)%items.length; updateLightbox(); }
+
+    prevBtn.addEventListener('click', prev);
+    nextBtn.addEventListener('click', next);
+    closeBtn.addEventListener('click', closeLightbox);
+    lb.addEventListener('click', e=>{ if(e.target===lb) closeLightbox(); });
+    document.addEventListener('keydown', e=>{
+      if(!lb.classList.contains('open')) return;
+      if(e.key==='Escape') closeLightbox();
+      if(e.key==='ArrowLeft') prev();
+      if(e.key==='ArrowRight') next();
+    });
+  })();
+  </script>
+</body>
+</html>
